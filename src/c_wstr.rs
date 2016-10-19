@@ -46,8 +46,10 @@ use std::vec::Vec;
 /// # Examples
 ///
 /// ```no_run
+/// extern crate cwstring;
+///
 /// # fn main() {
-/// use std::ffi::CString;
+/// use cwstring::ffi::CString;
 /// use std::os::raw::c_char;
 ///
 /// extern {
@@ -93,7 +95,9 @@ pub struct CString {
 /// Inspecting a foreign C string
 ///
 /// ```no_run
-/// use std::ffi::CStr;
+/// extern crate cwstring;
+///
+/// use cwstring::ffi::CStr;
 /// use std::os::raw::c_char;
 ///
 /// extern { fn my_string() -> *const c_char; }
@@ -109,7 +113,9 @@ pub struct CString {
 /// Passing a Rust-originating C string
 ///
 /// ```no_run
-/// use std::ffi::{CString, CStr};
+/// extern crate cwstring;
+///
+/// use cwstring::ffi::{CString, CStr};
 /// use std::os::raw::c_char;
 ///
 /// fn work(data: &CStr) {
@@ -127,7 +133,9 @@ pub struct CString {
 /// Converting a foreign C string into a Rust `String`
 ///
 /// ```no_run
-/// use std::ffi::CStr;
+/// extern crate cwstring;
+///
+/// use cwstring::ffi::CStr;
 /// use std::os::raw::c_char;
 ///
 /// extern { fn my_string() -> *const c_char; }
@@ -173,7 +181,9 @@ impl CString {
     /// # Examples
     ///
     /// ```no_run
-    /// use std::ffi::CString;
+    /// extern crate cwstring;
+    ///
+    /// use cwstring::ffi::CString;
     /// use std::os::raw::c_char;
     ///
     /// extern { fn puts(s: *const c_char); }
@@ -389,8 +399,10 @@ impl CStr {
     /// # Examples
     ///
     /// ```no_run
+    /// extern crate cwstring;
+    ///
     /// # fn main() {
-    /// use std::ffi::CStr;
+    /// use cwstring::ffi::CStr;
     /// use std::os::raw::c_char;
     ///
     /// extern {
@@ -419,6 +431,7 @@ impl CStr {
     /// ```
     /// # #![feature(cstr_from_bytes)]
     /// extern crate cwstring;
+    ///
     /// use cwstring::ffi::CStr;
     ///
     /// # fn main() {
@@ -444,7 +457,9 @@ impl CStr {
     ///
     /// ```
     /// # #![feature(cstr_from_bytes)]
-    /// use std::ffi::{CStr, CString};
+    /// extern crate cwstring;
+    ///
+    /// use cwstring::ffi::{CStr, CString};
     ///
     /// # fn main() {
     /// unsafe {
