@@ -36,27 +36,27 @@ use std::vec::Vec;
 /// type is a static guarantee that the underlying bytes contain no interior 0
 /// bytes and the final byte is 0.
 ///
-/// A `CString` is created from either a byte slice or a byte vector. After
-/// being created, a `CString` predominately inherits all of its methods from
+/// A `CWString` is created from either a byte slice or a byte vector. After
+/// being created, a `CWString` predominately inherits all of its methods from
 /// the `Deref` implementation to `[c_char]`. Note that the underlying array
 /// is represented as an array of `c_char` as opposed to `u8`. A `u8` slice
-/// can be obtained with the `as_bytes` method.  Slices produced from a `CString`
+/// can be obtained with the `as_bytes` method.  Slices produced from a `CWString`
 /// do *not* contain the trailing nul terminator unless otherwise specified.
 ///
 /// # Examples
 ///
 /// ```no_run
 /// extern crate cwstring;
-///
 /// # fn main() {
-/// use cwstring::ffi::CString;
+///
+/// use cwstring::ffi::CWString;
 /// use std::os::raw::c_char;
 ///
 /// extern {
 ///     fn my_printer(s: *const c_char);
 /// }
 ///
-/// let c_to_print = CString::new("Hello, world!").unwrap();
+/// let c_to_print = CWString::new("Hello, world!").unwrap();
 /// unsafe {
 ///     my_printer(c_to_print.as_ptr());
 /// }
@@ -65,24 +65,24 @@ use std::vec::Vec;
 ///
 /// # Safety
 ///
-/// `CString` is intended for working with traditional C-style strings
+/// `CWString` is intended for working with traditional C-style strings
 /// (a sequence of non-null bytes terminated by a single null byte); the
 /// primary use case for these kinds of strings is interoperating with C-like
 /// code. Often you will need to transfer ownership to/from that external
 /// code. It is strongly recommended that you thoroughly read through the
-/// documentation of `CString` before use, as improper ownership management
-/// of `CString` instances can lead to invalid memory accesses, memory leaks,
+/// documentation of `CWString` before use, as improper ownership management
+/// of `CWString` instances can lead to invalid memory accesses, memory leaks,
 /// and other memory errors.
 
 #[derive(PartialEq, PartialOrd, Eq, Ord, Hash, Clone)]
-pub struct CString {
+pub struct CWString {
     inner: Box<[u8]>,
 }
 
 /// Representation of a borrowed C string.
 ///
 /// This dynamically sized type is only safely constructed via a borrowed
-/// version of an instance of `CString`. This type can be constructed from a raw
+/// version of an instance of `CWString`. This type can be constructed from a raw
 /// C string as well and represents a C string borrowed from another location.
 ///
 /// Note that this structure is **not** `repr(C)` and is not recommended to be
@@ -97,14 +97,14 @@ pub struct CString {
 /// ```no_run
 /// extern crate cwstring;
 ///
-/// use cwstring::ffi::CStr;
+/// use cwstring::ffi::CWStr;
 /// use std::os::raw::c_char;
 ///
 /// extern { fn my_string() -> *const c_char; }
 ///
 /// fn main() {
 ///     unsafe {
-///         let slice = CStr::from_ptr(my_string());
+///         let slice = CWStr::from_ptr(my_string());
 ///         println!("string length: {}", slice.to_bytes().len());
 ///     }
 /// }
@@ -115,17 +115,17 @@ pub struct CString {
 /// ```no_run
 /// extern crate cwstring;
 ///
-/// use cwstring::ffi::{CString, CStr};
+/// use cwstring::ffi::{CWString, CWStr};
 /// use std::os::raw::c_char;
 ///
-/// fn work(data: &CStr) {
+/// fn work(data: &CWStr) {
 ///     extern { fn work_with(data: *const c_char); }
 ///
 ///     unsafe { work_with(data.as_ptr()) }
 /// }
 ///
 /// fn main() {
-///     let s = CString::new("data data data data").unwrap();
+///     let s = CWString::new("data data data data").unwrap();
 ///     work(&s);
 /// }
 /// ```
@@ -135,14 +135,14 @@ pub struct CString {
 /// ```no_run
 /// extern crate cwstring;
 ///
-/// use cwstring::ffi::CStr;
+/// use cwstring::ffi::CWStr;
 /// use std::os::raw::c_char;
 ///
 /// extern { fn my_string() -> *const c_char; }
 ///
 /// fn my_string_safe() -> String {
 ///     unsafe {
-///         CStr::from_ptr(my_string()).to_string_lossy().into_owned()
+///         CWStr::from_ptr(my_string()).to_string_lossy().into_owned()
 ///     }
 /// }
 ///
@@ -151,28 +151,28 @@ pub struct CString {
 /// }
 /// ```
 #[derive(Hash)]
-pub struct CStr {
+pub struct CWStr {
     // FIXME: this should not be represented with a DST slice but rather with
     //        just a raw `c_char` along with some form of marker to make
-    //        this an unsized type. Essentially `sizeof(&CStr)` should be the
-    //        same as `sizeof(&c_char)` but `CStr` should be an unsized type.
+    //        this an unsized type. Essentially `sizeof(&CWStr)` should be the
+    //        same as `sizeof(&c_char)` but `CWStr` should be an unsized type.
     inner: [c_char]
 }
 
-/// An error returned from `CString::new` to indicate that a nul byte was found
+/// An error returned from `CWString::new` to indicate that a nul byte was found
 /// in the vector provided.
 #[derive(Clone, PartialEq, Debug)]
 pub struct NulError(usize, Vec<u8>);
 
-/// An error returned from `CString::into_string` to indicate that a UTF-8 error
+/// An error returned from `CWString::into_string` to indicate that a UTF-8 error
 /// was encountered during the conversion.
 #[derive(Clone, PartialEq, Debug)]
 pub struct IntoStringError {
-    inner: CString,
+    inner: CWString,
     error: Utf8Error,
 }
 
-impl CString {
+impl CWString {
     /// Creates a new C-compatible string from a container of bytes.
     ///
     /// This method will consume the provided data and use the underlying bytes
@@ -183,13 +183,13 @@ impl CString {
     /// ```no_run
     /// extern crate cwstring;
     ///
-    /// use cwstring::ffi::CString;
+    /// use cwstring::ffi::CWString;
     /// use std::os::raw::c_char;
     ///
     /// extern { fn puts(s: *const c_char); }
     ///
     /// fn main() {
-    ///     let to_print = CString::new("Hello!").unwrap();
+    ///     let to_print = CWString::new("Hello!").unwrap();
     ///     unsafe {
     ///         puts(to_print.as_ptr());
     ///     }
@@ -201,14 +201,14 @@ impl CString {
     /// This function will return an error if the bytes yielded contain an
     /// internal 0 byte. The error returned will contain the bytes as well as
     /// the position of the nul byte.
-    pub fn new<T: Into<Vec<u8>>>(t: T) -> Result<CString, NulError> {
+    pub fn new<T: Into<Vec<u8>>>(t: T) -> Result<CWString, NulError> {
         Self::_new(t.into())
     }
 
-    fn _new(bytes: Vec<u8>) -> Result<CString, NulError> {
+    fn _new(bytes: Vec<u8>) -> Result<CWString, NulError> {
         match memchr::memchr(0, &bytes) {
             Some(i) => Err(NulError(i, bytes)),
-            None => Ok(unsafe { CString::from_vec_unchecked(bytes) }),
+            None => Ok(unsafe { CWString::from_vec_unchecked(bytes) }),
         }
     }
 
@@ -218,20 +218,20 @@ impl CString {
     /// This method is equivalent to `new` except that no runtime assertion
     /// is made that `v` contains no 0 bytes, and it requires an actual
     /// byte vector, not anything that can be converted to one with Into.
-    pub unsafe fn from_vec_unchecked(mut v: Vec<u8>) -> CString {
+    pub unsafe fn from_vec_unchecked(mut v: Vec<u8>) -> CWString {
         v.push(0);
-        CString { inner: v.into_boxed_slice() }
+        CWString { inner: v.into_boxed_slice() }
     }
 
-    /// Retakes ownership of a `CString` that was transferred to C.
+    /// Retakes ownership of a `CWString` that was transferred to C.
     ///
     /// This should only ever be called with a pointer that was earlier
-    /// obtained by calling `into_raw` on a `CString`. Additionally, the length
+    /// obtained by calling `into_raw` on a `CWString`. Additionally, the length
     /// of the string will be recalculated from the pointer.
-    pub unsafe fn from_raw(ptr: *mut c_char) -> CString {
+    pub unsafe fn from_raw(ptr: *mut c_char) -> CWString {
         let len = libc::strlen(ptr) + 1; // Including the NUL byte
         let slice = slice::from_raw_parts(ptr, len as usize);
-        CString { inner: mem::transmute(slice) }
+        CWString { inner: mem::transmute(slice) }
     }
 
     /// Transfers ownership of the string to a C caller.
@@ -246,14 +246,14 @@ impl CString {
         Box::into_raw(self.inner) as *mut c_char
     }
 
-    /// Converts the `CString` into a `String` if it contains valid Unicode data.
+    /// Converts the `CWString` into a `String` if it contains valid Unicode data.
     ///
-    /// On failure, ownership of the original `CString` is returned.
+    /// On failure, ownership of the original `CWString` is returned.
     pub fn into_string(self) -> Result<String, IntoStringError> {
         String::from_utf8(self.into_bytes())
             .map_err(|e| IntoStringError {
                 error: e.utf8_error(),
-                inner: unsafe { CString::from_vec_unchecked(e.into_bytes()) },
+                inner: unsafe { CWString::from_vec_unchecked(e.into_bytes()) },
             })
     }
 
@@ -274,7 +274,7 @@ impl CString {
         self.inner.into_vec()
     }
 
-    /// Returns the contents of this `CString` as a slice of bytes.
+    /// Returns the contents of this `CWString` as a slice of bytes.
     ///
     /// The returned slice does **not** contain the trailing nul separator and
     /// it is guaranteed to not have any interior nul bytes.
@@ -289,27 +289,27 @@ impl CString {
     }
 }
 
-impl ops::Deref for CString {
-    type Target = CStr;
+impl ops::Deref for CWString {
+    type Target = CWStr;
 
-    fn deref(&self) -> &CStr {
+    fn deref(&self) -> &CWStr {
         unsafe { mem::transmute(self.as_bytes_with_nul()) }
     }
 }
 
-impl fmt::Debug for CString {
+impl fmt::Debug for CWString {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         fmt::Debug::fmt(&**self, f)
     }
 }
 
-impl From<CString> for Vec<u8> {
-    fn from(s: CString) -> Vec<u8> {
+impl From<CWString> for Vec<u8> {
+    fn from(s: CWString) -> Vec<u8> {
         s.into_bytes()
     }
 }
 
-impl fmt::Debug for CStr {
+impl fmt::Debug for CWStr {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "\"")?;
         for byte in self.to_bytes().iter().flat_map(|&b| ascii::escape_default(b)) {
@@ -319,13 +319,13 @@ impl fmt::Debug for CStr {
     }
 }
 
-impl Borrow<CStr> for CString {
-    fn borrow(&self) -> &CStr { self }
+impl Borrow<CWStr> for CWString {
+    fn borrow(&self) -> &CWStr { self }
 }
 
 impl NulError {
     /// Returns the position of the nul byte in the slice that was provided to
-    /// `CString::new`.
+    /// `CWString::new`.
     pub fn nul_position(&self) -> usize { self.0 }
 
     /// Consumes this error, returning the underlying vector of bytes which
@@ -351,9 +351,9 @@ impl From<NulError> for io::Error {
 }
 
 impl IntoStringError {
-    /// Consumes this error, returning original `CString` which generated the
+    /// Consumes this error, returning original `CWString` which generated the
     /// error.
-    pub fn into_cstring(self) -> CString {
+    pub fn into_cstring(self) -> CWString {
         self.inner
     }
 
@@ -379,10 +379,10 @@ impl fmt::Display for IntoStringError {
     }
 }
 
-impl CStr {
+impl CWStr {
     /// Casts a raw C string to a safe C string wrapper.
     ///
-    /// This function will cast the provided `ptr` to the `CStr` wrapper which
+    /// This function will cast the provided `ptr` to the `CWStr` wrapper which
     /// allows inspection and interoperation of non-owned C strings. This method
     /// is unsafe for a number of reasons:
     ///
@@ -402,7 +402,7 @@ impl CStr {
     /// extern crate cwstring;
     ///
     /// # fn main() {
-    /// use cwstring::ffi::CStr;
+    /// use cwstring::ffi::CWStr;
     /// use std::os::raw::c_char;
     ///
     /// extern {
@@ -410,19 +410,19 @@ impl CStr {
     /// }
     ///
     /// unsafe {
-    ///     let slice = CStr::from_ptr(my_string());
+    ///     let slice = CWStr::from_ptr(my_string());
     ///     println!("string returned: {}", slice.to_str().unwrap());
     /// }
     /// # }
     /// ```
-    pub unsafe fn from_ptr<'a>(ptr: *const c_char) -> &'a CStr {
+    pub unsafe fn from_ptr<'a>(ptr: *const c_char) -> &'a CWStr {
         let len = libc::strlen(ptr);
         mem::transmute(slice::from_raw_parts(ptr, len as usize + 1))
     }
 
     /// Creates a C string wrapper from a byte slice.
     ///
-    /// This function will cast the provided `bytes` to a `CStr` wrapper after
+    /// This function will cast the provided `bytes` to a `CWStr` wrapper after
     /// ensuring that it is null terminated and does not contain any interior
     /// nul bytes.
     ///
@@ -432,14 +432,14 @@ impl CStr {
     /// # #![feature(cstr_from_bytes)]
     /// extern crate cwstring;
     ///
-    /// use cwstring::ffi::CStr;
+    /// use cwstring::ffi::CWStr;
     ///
     /// # fn main() {
-    /// let cstr = CStr::from_bytes_with_nul(b"hello\0");
+    /// let cstr = CWStr::from_bytes_with_nul(b"hello\0");
     /// assert!(cstr.is_some());
     /// # }
     /// ```
-    pub fn from_bytes_with_nul(bytes: &[u8]) -> Option<&CStr> {
+    pub fn from_bytes_with_nul(bytes: &[u8]) -> Option<&CWStr> {
         if bytes.is_empty() || memchr::memchr(0, &bytes) != Some(bytes.len() - 1) {
             None
         } else {
@@ -449,7 +449,7 @@ impl CStr {
 
     /// Unsafely creates a C string wrapper from a byte slice.
     ///
-    /// This function will cast the provided `bytes` to a `CStr` wrapper without
+    /// This function will cast the provided `bytes` to a `CWStr` wrapper without
     /// performing any sanity checks. The provided slice must be null terminated
     /// and not contain any interior nul bytes.
     ///
@@ -459,17 +459,17 @@ impl CStr {
     /// # #![feature(cstr_from_bytes)]
     /// extern crate cwstring;
     ///
-    /// use cwstring::ffi::{CStr, CString};
+    /// use cwstring::ffi::{CWStr, CWString};
     ///
     /// # fn main() {
     /// unsafe {
-    ///     let cstring = CString::new("hello").unwrap();
-    ///     let cstr = CStr::from_bytes_with_nul_unchecked(cstring.to_bytes_with_nul());
+    ///     let cstring = CWString::new("hello").unwrap();
+    ///     let cstr = CWStr::from_bytes_with_nul_unchecked(cstring.to_bytes_with_nul());
     ///     assert_eq!(cstr, &*cstring);
     /// }
     /// # }
     /// ```
-    pub unsafe fn from_bytes_with_nul_unchecked(bytes: &[u8]) -> &CStr {
+    pub unsafe fn from_bytes_with_nul_unchecked(bytes: &[u8]) -> &CWStr {
         mem::transmute(bytes)
     }
 
@@ -511,7 +511,7 @@ impl CStr {
         unsafe { mem::transmute(&self.inner) }
     }
 
-    /// Yields a `&str` slice if the `CStr` contains valid UTF-8.
+    /// Yields a `&str` slice if the `CWStr` contains valid UTF-8.
     ///
     /// This function will calculate the length of this string and check for
     /// UTF-8 validity, and then return the `&str` if it's valid.
@@ -521,14 +521,14 @@ impl CStr {
     /// > future to perform the length calculation in addition to the UTF-8
     /// > check whenever this method is called.
     pub fn to_str(&self) -> Result<&str, str::Utf8Error> {
-        // NB: When CStr is changed to perform the length check in .to_bytes()
+        // NB: When CWStr is changed to perform the length check in .to_bytes()
         // instead of in from_ptr(), it may be worth considering if this should
         // be rewritten to do the UTF-8 check inline with the length calculation
         // instead of doing it afterwards.
         str::from_utf8(self.to_bytes())
     }
 
-    /// Converts a `CStr` into a `Cow<str>`.
+    /// Converts a `CWStr` into a `Cow<str>`.
     ///
     /// This function will calculate the length of this string (which normally
     /// requires a linear amount of work to be done) and then return the
@@ -544,54 +544,54 @@ impl CStr {
     }
 }
 
-impl PartialEq for CStr {
-    fn eq(&self, other: &CStr) -> bool {
+impl PartialEq for CWStr {
+    fn eq(&self, other: &CWStr) -> bool {
         self.to_bytes().eq(other.to_bytes())
     }
 }
-impl Eq for CStr {}
-impl PartialOrd for CStr {
-    fn partial_cmp(&self, other: &CStr) -> Option<Ordering> {
+impl Eq for CWStr {}
+impl PartialOrd for CWStr {
+    fn partial_cmp(&self, other: &CWStr) -> Option<Ordering> {
         self.to_bytes().partial_cmp(&other.to_bytes())
     }
 }
-impl Ord for CStr {
-    fn cmp(&self, other: &CStr) -> Ordering {
+impl Ord for CWStr {
+    fn cmp(&self, other: &CWStr) -> Ordering {
         self.to_bytes().cmp(&other.to_bytes())
     }
 }
 
-impl ToOwned for CStr {
-    type Owned = CString;
+impl ToOwned for CWStr {
+    type Owned = CWString;
 
-    fn to_owned(&self) -> CString {
-        unsafe { CString::from_vec_unchecked(self.to_bytes().to_vec()) }
+    fn to_owned(&self) -> CWString {
+        unsafe { CWString::from_vec_unchecked(self.to_bytes().to_vec()) }
     }
 }
 
-impl<'a> From<&'a CStr> for CString {
-    fn from(s: &'a CStr) -> CString {
+impl<'a> From<&'a CWStr> for CWString {
+    fn from(s: &'a CWStr) -> CWString {
         s.to_owned()
     }
 }
 
-impl ops::Index<ops::RangeFull> for CString {
-    type Output = CStr;
+impl ops::Index<ops::RangeFull> for CWString {
+    type Output = CWStr;
 
     #[inline]
-    fn index(&self, _index: ops::RangeFull) -> &CStr {
+    fn index(&self, _index: ops::RangeFull) -> &CWStr {
         self
     }
 }
 
-impl AsRef<CStr> for CStr {
-    fn as_ref(&self) -> &CStr {
+impl AsRef<CWStr> for CWStr {
+    fn as_ref(&self) -> &CWStr {
         self
     }
 }
 
-impl AsRef<CStr> for CString {
-    fn as_ref(&self) -> &CStr {
+impl AsRef<CWStr> for CWString {
+    fn as_ref(&self) -> &CWStr {
         self
     }
 }
@@ -609,45 +609,45 @@ mod tests {
         let data = b"123\0";
         let ptr = data.as_ptr() as *const c_char;
         unsafe {
-            assert_eq!(CStr::from_ptr(ptr).to_bytes(), b"123");
-            assert_eq!(CStr::from_ptr(ptr).to_bytes_with_nul(), b"123\0");
+            assert_eq!(CWStr::from_ptr(ptr).to_bytes(), b"123");
+            assert_eq!(CWStr::from_ptr(ptr).to_bytes_with_nul(), b"123\0");
         }
     }
 
     #[test]
     fn simple() {
-        let s = CString::new("1234").unwrap();
+        let s = CWString::new("1234").unwrap();
         assert_eq!(s.as_bytes(), b"1234");
         assert_eq!(s.as_bytes_with_nul(), b"1234\0");
     }
 
     #[test]
     fn build_with_zero1() {
-        assert!(CString::new(&b"\0"[..]).is_err());
+        assert!(CWString::new(&b"\0"[..]).is_err());
     }
     #[test]
     fn build_with_zero2() {
-        assert!(CString::new(vec![0]).is_err());
+        assert!(CWString::new(vec![0]).is_err());
     }
 
     #[test]
     fn build_with_zero3() {
         unsafe {
-            let s = CString::from_vec_unchecked(vec![0]);
+            let s = CWString::from_vec_unchecked(vec![0]);
             assert_eq!(s.as_bytes(), b"\0");
         }
     }
 
     #[test]
     fn formatted() {
-        let s = CString::new(&b"abc\x01\x02\n\xE2\x80\xA6\xFF"[..]).unwrap();
+        let s = CWString::new(&b"abc\x01\x02\n\xE2\x80\xA6\xFF"[..]).unwrap();
         assert_eq!(format!("{:?}", s), r#""abc\x01\x02\n\xe2\x80\xa6\xff""#);
     }
 
     #[test]
     fn borrowed() {
         unsafe {
-            let s = CStr::from_ptr(b"12\0".as_ptr() as *const _);
+            let s = CWStr::from_ptr(b"12\0".as_ptr() as *const _);
             assert_eq!(s.to_bytes(), b"12");
             assert_eq!(s.to_bytes_with_nul(), b"12\0");
         }
@@ -658,14 +658,14 @@ mod tests {
         let data = b"123\xE2\x80\xA6\0";
         let ptr = data.as_ptr() as *const c_char;
         unsafe {
-            assert_eq!(CStr::from_ptr(ptr).to_str(), Ok("123…"));
-            assert_eq!(CStr::from_ptr(ptr).to_string_lossy(), Borrowed("123…"));
+            assert_eq!(CWStr::from_ptr(ptr).to_str(), Ok("123…"));
+            assert_eq!(CWStr::from_ptr(ptr).to_string_lossy(), Borrowed("123…"));
         }
         let data = b"123\xE2\0";
         let ptr = data.as_ptr() as *const c_char;
         unsafe {
-            assert!(CStr::from_ptr(ptr).to_str().is_err());
-            assert_eq!(CStr::from_ptr(ptr).to_string_lossy(), Owned::<str>(format!("123\u{FFFD}")));
+            assert!(CWStr::from_ptr(ptr).to_str().is_err());
+            assert_eq!(CWStr::from_ptr(ptr).to_string_lossy(), Owned::<str>(format!("123\u{FFFD}")));
         }
     }
 
@@ -674,7 +674,7 @@ mod tests {
         let data = b"123\0";
         let ptr = data.as_ptr() as *const c_char;
 
-        let owned = unsafe { CStr::from_ptr(ptr).to_owned() };
+        let owned = unsafe { CWStr::from_ptr(ptr).to_owned() };
         assert_eq!(owned.as_bytes_with_nul(), data);
     }
 
@@ -682,13 +682,13 @@ mod tests {
     fn equal_hash() {
         let data = b"123\xE2\xFA\xA6\0";
         let ptr = data.as_ptr() as *const c_char;
-        let cstr: &'static CStr = unsafe { CStr::from_ptr(ptr) };
+        let cstr: &'static CWStr = unsafe { CWStr::from_ptr(ptr) };
 
         let mut s = SipHasher::new_with_keys(0, 0);
         cstr.hash(&mut s);
         let cstr_hash = s.finish();
         let mut s = SipHasher::new_with_keys(0, 0);
-        CString::new(&data[..data.len() - 1]).unwrap().hash(&mut s);
+        CWString::new(&data[..data.len() - 1]).unwrap().hash(&mut s);
         let cstring_hash = s.finish();
 
         assert_eq!(cstr_hash, cstring_hash);
@@ -697,12 +697,12 @@ mod tests {
     #[test]
     fn from_bytes_with_nul() {
         let data = b"123\0";
-        let cstr = CStr::from_bytes_with_nul(data);
-        assert_eq!(cstr.map(CStr::to_bytes), Some(&b"123"[..]));
-        assert_eq!(cstr.map(CStr::to_bytes_with_nul), Some(&b"123\0"[..]));
+        let cstr = CWStr::from_bytes_with_nul(data);
+        assert_eq!(cstr.map(CWStr::to_bytes), Some(&b"123"[..]));
+        assert_eq!(cstr.map(CWStr::to_bytes_with_nul), Some(&b"123\0"[..]));
 
         unsafe {
-            let cstr_unchecked = CStr::from_bytes_with_nul_unchecked(data);
+            let cstr_unchecked = CWStr::from_bytes_with_nul_unchecked(data);
             assert_eq!(cstr, Some(cstr_unchecked));
         }
     }
@@ -710,14 +710,14 @@ mod tests {
     #[test]
     fn from_bytes_with_nul_unterminated() {
         let data = b"123";
-        let cstr = CStr::from_bytes_with_nul(data);
+        let cstr = CWStr::from_bytes_with_nul(data);
         assert!(cstr.is_none());
     }
 
     #[test]
     fn from_bytes_with_nul_interior() {
         let data = b"1\023\0";
-        let cstr = CStr::from_bytes_with_nul(data);
+        let cstr = CWStr::from_bytes_with_nul(data);
         assert!(cstr.is_none());
     }
 }
