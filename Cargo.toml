@@ -1,0 +1,8 @@
+[package]
+name = "cwstring"
+version = "0.1.0"
+authors = ["Artem V. Navrotskiy <bozaro@yandex.ru>"]
+
+[dependencies]
+libc = "*"
+memchr = "*"
