@@ -1,6 +1,6 @@
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn it_works() {
-    }
-}
+#![feature(question_mark)]
+
+extern crate libc;
+extern crate memchr;
+
+mod c_wstr;
