@@ -418,7 +418,8 @@ impl CStr {
     ///
     /// ```
     /// # #![feature(cstr_from_bytes)]
-    /// use std::ffi::CStr;
+    /// extern crate cwstring;
+    /// use cwstring::ffi::CStr;
     ///
     /// # fn main() {
     /// let cstr = CStr::from_bytes_with_nul(b"hello\0");
