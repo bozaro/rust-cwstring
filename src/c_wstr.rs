@@ -673,18 +673,19 @@ mod tests {
 
     #[test]
     fn to_string() {
-        /*todo: let data = b"123\xE2\x80\xA6\0";
-        let ptr = data.as_ptr() as *const c_ushort;
+        let data: Vec<u16> = "123".encode_utf16().chain(Some(0xD83Du16)).chain(Some(0xDE03u16)).chain(Some(0)).collect();
+        let ptr = data.as_ptr();
         unsafe {
-            assert_eq!(CWideStr::from_ptr(ptr).to_str(), Ok("123…"));
-            assert_eq!(CWideStr::from_ptr(ptr).to_string_lossy(), Borrowed("123…"));
+            assert!(CWideStr::from_ptr(ptr).to_string().is_ok());
+            assert_eq!(CWideStr::from_ptr(ptr).to_string().unwrap(), "123😃");
+            assert_eq!(CWideStr::from_ptr(ptr).to_string_lossy(), Borrowed("123😃"));
         }
-        let data = b"123\xE2\0";
-        let ptr = data.as_ptr() as *const c_ushort;
+        let data: Vec<u16> = "123".encode_utf16().chain(Some(0xD83Du16)).chain(Some(0)).collect();
+        let ptr = data.as_ptr();
         unsafe {
-            assert!(CWideStr::from_ptr(ptr).to_str().is_err());
+            assert!(CWideStr::from_ptr(ptr).to_string().is_err());
             assert_eq!(CWideStr::from_ptr(ptr).to_string_lossy(), Owned::<str>(format!("123\u{FFFD}")));
-        }*/
+        }
     }
 
     #[test]
@@ -699,7 +700,7 @@ mod tests {
     #[test]
     fn equal_hash() {
         /*todo: let data = b"123\xE2\xFA\xA6\0";
-        let ptr = data.as_ptr() as *const c_ushort;
+        let ptr = data.as_ptr();
         let cstr: &'static CWideStr = unsafe { CWideStr::from_ptr(ptr) };
 
         let mut s = SipHasher::new_with_keys(0, 0);
