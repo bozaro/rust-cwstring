@@ -466,7 +466,8 @@ impl CWideStr {
     /// use cwstring::ffi::CWideStr;
     ///
     /// # fn main() {
-    /// let cstr = CWideStr::from_bytes_with_nul(b"hello\0");
+    /// let wide = "hello\0".encode_utf16().collect::<Vec<u16>>();
+    /// let cstr = CWideStr::from_bytes_with_nul(&wide);
     /// assert!(cstr.is_some());
     /// # }
     /// ```
@@ -766,9 +767,9 @@ mod tests {
 
     #[test]
     fn from_bytes_with_nul_unterminated() {
-        /*todo: let data = b"123";
-        let cstr = CWideStr::from_bytes_with_nul(data);
-        assert!(cstr.is_none());*/
+        let data = utf16("123");
+        let cstr = CWideStr::from_bytes_with_nul(&data);
+        assert!(cstr.is_none());
     }
 
     #[test]
