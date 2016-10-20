@@ -699,7 +699,7 @@ mod tests {
 
     #[test]
     fn equal_hash() {
-        /*todo: let data = b"123\xE2\xFA\xA6\0";
+        let data: Vec<u16> = "123".encode_utf16().chain(Some(0xD83Du16)).chain(Some(0xDE03u16)).chain(Some(0)).collect();
         let ptr = data.as_ptr();
         let cstr: &'static CWideStr = unsafe { CWideStr::from_ptr(ptr) };
 
@@ -710,7 +710,7 @@ mod tests {
         CWideString::new(&data[..data.len() - 1]).unwrap().hash(&mut s);
         let cstring_hash = s.finish();
 
-        assert_eq!(cstr_hash, cstring_hash);*/
+        assert_eq!(cstr_hash, cstring_hash);
     }
 
     #[test]
