@@ -124,7 +124,7 @@ pub struct CWideString {
 /// }
 ///
 /// fn main() {
-///     let s = CWideString::new("data data data data").unwrap();
+///     let s = CWideString::from_str("data data data data").unwrap();
 ///     work(&s);
 /// }
 /// ```
@@ -141,7 +141,7 @@ pub struct CWideString {
 ///
 /// fn my_string_safe() -> String {
 ///     unsafe {
-///         CWideStr::from_ptr(my_string()).to_string_lossy().into_owned()
+///         CWideStr::from_ptr(my_string()).to_string_lossy()
 ///     }
 /// }
 ///
@@ -442,11 +442,11 @@ impl CWideStr {
     ///
     /// unsafe {
     ///     let slice = CWideStr::from_ptr(my_string());
-    ///     println!("string returned: {}", slice.to_str().unwrap());
+    ///     println!("string returned: {}", slice.to_string().unwrap());
     /// }
     /// # }
     /// ```
-    pub unsafe fn from_ptr<'a>(ptr: *const u16) -> &'a CWideStr {
+    pub unsafe fn from_ptr<'a>(ptr: *const c_ushort) -> &'a CWideStr {
         let len = wstrlen(ptr);
         mem::transmute(slice::from_raw_parts(ptr, len as usize + 1))
     }
@@ -712,7 +712,7 @@ mod tests {
     }
 
     #[test]
-    fn to_str() {
+    fn to_string() {
         /*todo: let data = b"123\xE2\x80\xA6\0";
         let ptr = data.as_ptr() as *const c_ushort;
         unsafe {
