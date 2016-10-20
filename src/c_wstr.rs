@@ -277,17 +277,6 @@ impl CWideString {
         Box::into_raw(self.inner) as *mut c_ushort
     }
 
-    /// Converts the `CWideString` into a `String` if it contains valid Unicode data.
-    ///
-    /// On failure, ownership of the original `CWideString` is returned.
-    /*todo: pub fn into_string(self) -> Result<String, IntoStringError> {
-        String::from_utf16(self.into_bytes())
-            .map_err(|e| IntoStringError {
-                error: e.utf8_error(),
-                inner: unsafe { CWideString::from_vec_unchecked(e.into_bytes()) },
-            })
-    }*/
-
     /// Returns the underlying byte buffer.
     ///
     /// The returned buffer does **not** contain the trailing nul separator and
@@ -378,35 +367,6 @@ impl From<WideNulError> for io::Error {
     fn from(_: WideNulError) -> io::Error {
         io::Error::new(io::ErrorKind::InvalidInput,
                        "data provided contains a nul byte")
-    }
-}
-
-impl IntoStringError {
-    /// Consumes this error, returning original `CWideString` which generated the
-    /// error.
-    pub fn into_cstring(self) -> CWideString {
-        self.inner
-    }
-
-    /// Access the underlying UTF-8 error that was the cause of this error.
-    pub fn utf8_error(&self) -> Utf8Error {
-        self.error
-    }
-}
-
-impl Error for IntoStringError {
-    fn description(&self) -> &str {
-        "C string contained non-utf8 bytes"
-    }
-
-    fn cause(&self) -> Option<&Error> {
-        Some(&self.error)
-    }
-}
-
-impl fmt::Display for IntoStringError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        self.description().fmt(f)
     }
 }
 
@@ -728,12 +688,12 @@ mod tests {
     }
 
     #[test]
-    fn to_owned() {
-        /*todo: let data = b"123\0";
-        let ptr = data.as_ptr() as *const c_ushort;
+    fn from_ptr() {
+        let data = utf16("123\0");
+        let ptr = data.as_ptr();
 
         let owned = unsafe { CWideStr::from_ptr(ptr).to_owned() };
-        assert_eq!(owned.as_bytes_with_nul(), data);*/
+        assert_eq!(owned.as_bytes_with_nul(), &data[..]);
     }
 
     #[test]
@@ -774,8 +734,8 @@ mod tests {
 
     #[test]
     fn from_bytes_with_nul_interior() {
-        /*todo: let data = b"1\023\0";
-        let cstr = CWideStr::from_bytes_with_nul(data);
-        assert!(cstr.is_none());*/
+        let data = utf16("1\023\0");
+        let cstr = CWideStr::from_bytes_with_nul(&data);
+        assert!(cstr.is_none());
     }
 }
