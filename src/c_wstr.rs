@@ -161,7 +161,7 @@ pub struct CWideStr {
 /// An error returned from `CWideString::new` to indicate that a nul byte was found
 /// in the vector provided.
 #[derive(Clone, PartialEq, Debug)]
-pub struct NulError(usize, Vec<u16>);
+pub struct WideNulError(usize, Vec<u16>);
 
 /// An error returned from `CWideString::into_string` to indicate that a UTF-8 error
 /// was encountered during the conversion.
@@ -200,13 +200,13 @@ impl CWideString {
     /// This function will return an error if the bytes yielded contain an
     /// internal 0 byte. The error returned will contain the bytes as well as
     /// the position of the nul byte.
-    pub fn new<T: Into<Vec<u16>>>(t: T) -> Result<CWideString, NulError> {
+    pub fn new<T: Into<Vec<u16>>>(t: T) -> Result<CWideString, WideNulError> {
         Self::_new(t.into())
     }
 
-    fn _new(bytes: Vec<u16>) -> Result<CWideString, NulError> {
+    fn _new(bytes: Vec<u16>) -> Result<CWideString, WideNulError> {
         match wmemchr(0, &bytes) {
-            Some(i) => Err(NulError(i, bytes)),
+            Some(i) => Err(WideNulError(i, bytes)),
             None => Ok(unsafe { CWideString::from_vec_unchecked(bytes) }),
         }
     }
@@ -261,7 +261,7 @@ impl CWideString {
     /// This function will return an error if the bytes yielded contain an
     /// internal 0 byte. The error returned will contain the bytes as well as
     /// the position of the nul byte.
-    pub fn from_str(v: &str) -> Result<CWideString, NulError> {
+    pub fn from_str(v: &str) -> Result<CWideString, WideNulError> {
         Self::_new(v.encode_utf16().collect())
     }
 
@@ -354,7 +354,7 @@ impl Borrow<CWideStr> for CWideString {
     fn borrow(&self) -> &CWideStr { self }
 }
 
-impl NulError {
+impl WideNulError {
     /// Returns the position of the nul byte in the slice that was provided to
     /// `CWideString::new`.
     pub fn nul_position(&self) -> usize { self.0 }
@@ -364,18 +364,18 @@ impl NulError {
     pub fn into_vec(self) -> Vec<u16> { self.1 }
 }
 
-impl Error for NulError {
+impl Error for WideNulError {
     fn description(&self) -> &str { "nul byte found in data" }
 }
 
-impl fmt::Display for NulError {
+impl fmt::Display for WideNulError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "nul byte found in provided data at position: {}", self.0)
     }
 }
 
-impl From<NulError> for io::Error {
-    fn from(_: NulError) -> io::Error {
+impl From<WideNulError> for io::Error {
+    fn from(_: WideNulError) -> io::Error {
         io::Error::new(io::ErrorKind::InvalidInput,
                        "data provided contains a nul byte")
     }
