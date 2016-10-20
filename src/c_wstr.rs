@@ -331,10 +331,12 @@ impl From<CWideString> for Vec<u16> {
 
 impl fmt::Debug for CWideStr {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        use std;
+
         write!(f, "\"")?;
-        /*todo: for byte in self.to_bytes().iter().flat_map(|&b| ascii::escape_default(b)) {
+        for byte in self.to_bytes().iter().flat_map(|b| unsafe {std::char::from_u32_unchecked(*b as u32)}.escape_default()) {
             f.write_char(byte as char)?;
-        }*/
+        }
         write!(f, "\"")
     }
 }
@@ -658,8 +660,8 @@ mod tests {
 
     #[test]
     fn formatted() {
-        /*todo: let s = CWideString::new(&"abc\x01\x02\n\xE2\x80\xA6\xFF"[..]).unwrap();
-        assert_eq!(format!("{:?}", s), r#""abc\x01\x02\n\xe2\x80\xa6\xff""#);*/
+        let s = CWideString::new(&['a' as u16, 'b' as u16, 'c' as u16, 0x01u16, 0x02u16, '\n' as u16, 0xD83Du16, 0xDE03u16][..]).unwrap();
+        assert_eq!(format!("{:?}", s), r#""abc\u{1}\u{2}\n\u{d83d}\u{de03}""#);
     }
 
     #[test]
