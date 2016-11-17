@@ -104,7 +104,7 @@ pub struct CString<A: CChar = u8> {
 ///
 /// fn main() {
 ///     unsafe {
-///         let slice = CStr::<u16>::from_ptr(my_string());
+///         let slice = CStr::<u16>::from_cptr(my_string());
 ///         println!("string length: {}", slice.to_bytes().len());
 ///     }
 /// }
@@ -142,7 +142,7 @@ pub struct CString<A: CChar = u8> {
 ///
 /// fn my_string_safe() -> String {
 ///     unsafe {
-///         CStr::<u16>::from_ptr(my_string()).to_string_lossy().into_owned()
+///         CStr::<u16>::from_cptr(my_string()).to_string_lossy().into_owned()
 ///     }
 /// }
 ///
@@ -432,12 +432,12 @@ impl <A: CChar> CStr<A> {
     /// }
     ///
     /// unsafe {
-    ///     let slice = CStr::<u16>::from_ptr(my_string());
+    ///     let slice = CStr::<u16>::from_cptr(my_string());
     ///     println!("string returned: {}", slice.to_string().unwrap());
     /// }
     /// # }
     /// ```
-    pub unsafe fn from_ptr<'a>(ptr: *const A::CType) -> &'a CStr<A> {
+    pub unsafe fn from_cptr<'a>(ptr: *const A::CType) -> &'a CStr<A> {
         let len = A::strlen(ptr);
         mem::transmute(slice::from_raw_parts(ptr, len + 1))
     }
@@ -570,6 +570,10 @@ impl <A: CChar> CStr<A> {
 impl CStr<u8> {
     pub fn to_str(&self) -> Result<&str, str::Utf8Error> {
         str::from_utf8(self.to_bytes())
+    }
+
+    pub unsafe fn from_ptr<'a>(ptr: *const c_char) -> &'a Self {
+        CStr::from_cptr(ptr)
     }
 }
 
@@ -726,8 +730,8 @@ mod tests_u8 {
         let data = b"123\0";
         let ptr = data.as_ptr() as *const c_char;
         unsafe {
-            assert_eq!(CStr::<u8>::from_ptr(ptr).to_bytes(), b"123");
-            assert_eq!(CStr::<u8>::from_ptr(ptr).to_bytes_with_nul(), b"123\0");
+            assert_eq!(CStr::from_ptr(ptr).to_bytes(), b"123");
+            assert_eq!(CStr::from_ptr(ptr).to_bytes_with_nul(), b"123\0");
         }
     }
 
@@ -764,7 +768,7 @@ mod tests_u8 {
     #[test]
     fn borrowed() {
         unsafe {
-            let s = CStr::<u8>::from_ptr(b"12\0".as_ptr() as *const _);
+            let s = CStr::from_ptr(b"12\0".as_ptr() as *const _);
             assert_eq!(s.to_bytes(), b"12");
             assert_eq!(s.to_bytes_with_nul(), b"12\0");
         }
@@ -775,14 +779,14 @@ mod tests_u8 {
         let data = b"123\xE2\x80\xA6\0";
         let ptr = data.as_ptr() as *const c_char;
         unsafe {
-            assert_eq!(CStr::<u8>::from_ptr(ptr).to_str(), Ok("123…"));
-            assert_eq!(CStr::<u8>::from_ptr(ptr).to_string_lossy(), Borrowed("123…"));
+            assert_eq!(CStr::from_ptr(ptr).to_str(), Ok("123…"));
+            assert_eq!(CStr::from_ptr(ptr).to_string_lossy(), Borrowed("123…"));
         }
         let data = b"123\xE2\0";
         let ptr = data.as_ptr() as *const c_char;
         unsafe {
-            assert!(CStr::<u8>::from_ptr(ptr).to_str().is_err());
-            assert_eq!(CStr::<u8>::from_ptr(ptr).to_string_lossy(), Owned::<str>(format!("123\u{FFFD}")));
+            assert!(CStr::from_ptr(ptr).to_str().is_err());
+            assert_eq!(CStr::from_ptr(ptr).to_string_lossy(), Owned::<str>(format!("123\u{FFFD}")));
         }
     }
 
@@ -791,7 +795,7 @@ mod tests_u8 {
         let data = b"123\0";
         let ptr = data.as_ptr() as *const c_char;
 
-        let owned = unsafe { CStr::<u8>::from_ptr(ptr).to_owned() };
+        let owned = unsafe { CStr::from_ptr(ptr).to_owned() };
         assert_eq!(owned.as_bytes_with_nul(), data);
     }
 
@@ -799,7 +803,7 @@ mod tests_u8 {
     fn equal_hash() {
         let data = b"123\xE2\xFA\xA6\0";
         let ptr = data.as_ptr() as *const c_char;
-        let cstr: &'static CStr<u8> = unsafe { CStr::<u8>::from_ptr(ptr) };
+        let cstr: &'static CStr = unsafe { CStr::from_ptr(ptr) };
 
         let mut s = SipHasher::new_with_keys(0, 0);
         cstr.hash(&mut s);
@@ -856,8 +860,8 @@ mod tests_u16 {
         let data = utf16("123\0");
         let ptr = data.as_ptr();
         unsafe {
-            assert_eq!(CStr::<u16>::from_ptr(ptr).to_bytes(), &utf16("123")[..]);
-            assert_eq!(CStr::<u16>::from_ptr(ptr).to_bytes_with_nul(), &utf16("123\0")[..]);
+            assert_eq!(CStr::<u16>::from_cptr(ptr).to_bytes(), &utf16("123")[..]);
+            assert_eq!(CStr::<u16>::from_cptr(ptr).to_bytes_with_nul(), &utf16("123\0")[..]);
         }
     }
 
@@ -894,7 +898,7 @@ mod tests_u16 {
     #[test]
     fn borrowed() {
         unsafe {
-            let s = CStr::<u16>::from_ptr(utf16("12\0").as_ptr() as *const _);
+            let s = CStr::<u16>::from_cptr(utf16("12\0").as_ptr() as *const _);
             assert_eq!(s.to_bytes(), &utf16("12")[..]);
             assert_eq!(s.to_bytes_with_nul(), &utf16("12\0")[..]);
         }
@@ -905,15 +909,15 @@ mod tests_u16 {
         let data: Vec<u16> = "123".encode_utf16().chain(Some(0xD83Du16)).chain(Some(0xDE03u16)).chain(Some(0)).collect();
         let ptr = data.as_ptr();
         unsafe {
-            assert!(CStr::<u16>::from_ptr(ptr).to_string().is_ok());
-            assert_eq!(CStr::<u16>::from_ptr(ptr).to_string().unwrap(), "123😃");
-            assert_eq!(CStr::<u16>::from_ptr(ptr).to_string_lossy(), Borrowed("123😃"));
+            assert!(CStr::<u16>::from_cptr(ptr).to_string().is_ok());
+            assert_eq!(CStr::<u16>::from_cptr(ptr).to_string().unwrap(), "123😃");
+            assert_eq!(CStr::<u16>::from_cptr(ptr).to_string_lossy(), Borrowed("123😃"));
         }
         let data: Vec<u16> = "123".encode_utf16().chain(Some(0xD83Du16)).chain(Some(0)).collect();
         let ptr = data.as_ptr();
         unsafe {
-            assert!(CStr::<u16>::from_ptr(ptr).to_string().is_err());
-            assert_eq!(CStr::<u16>::from_ptr(ptr).to_string_lossy(), Owned::<str>(format!("123\u{FFFD}")));
+            assert!(CStr::<u16>::from_cptr(ptr).to_string().is_err());
+            assert_eq!(CStr::<u16>::from_cptr(ptr).to_string_lossy(), Owned::<str>(format!("123\u{FFFD}")));
         }
     }
 
@@ -922,7 +926,7 @@ mod tests_u16 {
         let data = utf16("123\0");
         let ptr = data.as_ptr();
 
-        let owned = unsafe { CStr::<u16>::from_ptr(ptr).to_owned() };
+        let owned = unsafe { CStr::<u16>::from_cptr(ptr).to_owned() };
         assert_eq!(owned.as_bytes_with_nul(), &data[..]);
     }
 
@@ -930,7 +934,7 @@ mod tests_u16 {
     fn equal_hash() {
         let data: Vec<u16> = "123".encode_utf16().chain(Some(0xD83Du16)).chain(Some(0xDE03u16)).chain(Some(0)).collect();
         let ptr = data.as_ptr();
-        let cstr: &'static CStr<u16> = unsafe { CStr::<u16>::from_ptr(ptr) };
+        let cstr: &'static CStr<u16> = unsafe { CStr::<u16>::from_cptr(ptr) };
 
         let mut s = SipHasher::new_with_keys(0, 0);
         cstr.hash(&mut s);
