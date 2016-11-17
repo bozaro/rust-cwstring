@@ -5,3 +5,4 @@ authors = ["Artem V. Navrotskiy <bozaro@yandex.ru>"]
 
 [dependencies]
 libc = "*"
+memchr = "*"
