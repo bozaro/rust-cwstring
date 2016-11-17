@@ -36,11 +36,11 @@ use std::vec::Vec;
 /// type is a static guarantee that the underlying bytes contain no interior 0
 /// bytes and the final byte is 0.
 ///
-/// A `CWideString` is created from either a byte slice or a byte vector. After
-/// being created, a `CWideString` predominately inherits all of its methods from
+/// A `CString` is created from either a byte slice or a byte vector. After
+/// being created, a `CString` predominately inherits all of its methods from
 /// the `Deref` implementation to `[c_ushort]`. Note that the underlying array
 /// is represented as an array of `c_ushort` as opposed to `u8`. A `u8` slice
-/// can be obtained with the `as_bytes` method.  Slices produced from a `CWideString`
+/// can be obtained with the `as_bytes` method.  Slices produced from a `CString`
 /// do *not* contain the trailing nul terminator unless otherwise specified.
 ///
 /// # Examples
@@ -49,14 +49,14 @@ use std::vec::Vec;
 /// extern crate cwstring;
 /// # fn main() {
 ///
-/// use cwstring::ffi::CWideString;
+/// use cwstring::ffi::CString;
 /// use std::os::raw::c_ushort;
 ///
 /// extern {
 ///     fn my_printer(s: *const c_ushort);
 /// }
 ///
-/// let c_to_print = CWideString::<u16>::from_str("Hello, world!").unwrap();
+/// let c_to_print = CString::<u16>::from_str("Hello, world!").unwrap();
 /// unsafe {
 ///     my_printer(c_to_print.as_ptr());
 /// }
@@ -65,24 +65,24 @@ use std::vec::Vec;
 ///
 /// # Safety
 ///
-/// `CWideString` is intended for working with traditional C-style strings
+/// `CString` is intended for working with traditional C-style strings
 /// (a sequence of non-null bytes terminated by a single null byte); the
 /// primary use case for these kinds of strings is interoperating with C-like
 /// code. Often you will need to transfer ownership to/from that external
 /// code. It is strongly recommended that you thoroughly read through the
-/// documentation of `CWideString` before use, as improper ownership management
-/// of `CWideString` instances can lead to invalid memory accesses, memory leaks,
+/// documentation of `CString` before use, as improper ownership management
+/// of `CString` instances can lead to invalid memory accesses, memory leaks,
 /// and other memory errors.
 
 #[derive(PartialEq, PartialOrd, Eq, Ord, Hash, Clone)]
-pub struct CWideString<A: CChar = u8> {
+pub struct CString<A: CChar = u8> {
     inner: Box<[A]>,
 }
 
 /// Representation of a borrowed C string.
 ///
 /// This dynamically sized type is only safely constructed via a borrowed
-/// version of an instance of `CWideString`. This type can be constructed from a raw
+/// version of an instance of `CString`. This type can be constructed from a raw
 /// C string as well and represents a C string borrowed from another location.
 ///
 /// Note that this structure is **not** `repr(C)` and is not recommended to be
@@ -97,14 +97,14 @@ pub struct CWideString<A: CChar = u8> {
 /// ```no_run
 /// extern crate cwstring;
 ///
-/// use cwstring::ffi::CWideStr;
+/// use cwstring::ffi::CStr;
 /// use std::os::raw::c_ushort;
 ///
 /// extern { fn my_string() -> *const c_ushort; }
 ///
 /// fn main() {
 ///     unsafe {
-///         let slice = CWideStr::<u16>::from_ptr(my_string());
+///         let slice = CStr::<u16>::from_ptr(my_string());
 ///         println!("string length: {}", slice.to_bytes().len());
 ///     }
 /// }
@@ -115,17 +115,17 @@ pub struct CWideString<A: CChar = u8> {
 /// ```no_run
 /// extern crate cwstring;
 ///
-/// use cwstring::ffi::{CWideString, CWideStr};
+/// use cwstring::ffi::{CString, CStr};
 /// use std::os::raw::c_ushort;
 ///
-/// fn work(data: &CWideStr<u16>) {
+/// fn work(data: &CStr<u16>) {
 ///     extern { fn work_with(data: *const c_ushort); }
 ///
 ///     unsafe { work_with(data.as_ptr()) }
 /// }
 ///
 /// fn main() {
-///     let s = CWideString::<u16>::from_str("data data data data").unwrap();
+///     let s = CString::<u16>::from_str("data data data data").unwrap();
 ///     work(&s);
 /// }
 /// ```
@@ -135,14 +135,14 @@ pub struct CWideString<A: CChar = u8> {
 /// ```no_run
 /// extern crate cwstring;
 ///
-/// use cwstring::ffi::CWideStr;
+/// use cwstring::ffi::CStr;
 /// use std::os::raw::c_ushort;
 ///
 /// extern { fn my_string() -> *const c_ushort; }
 ///
 /// fn my_string_safe() -> String {
 ///     unsafe {
-///         CWideStr::<u16>::from_ptr(my_string()).to_string_lossy().into_owned()
+///         CStr::<u16>::from_ptr(my_string()).to_string_lossy().into_owned()
 ///     }
 /// }
 ///
@@ -151,24 +151,24 @@ pub struct CWideString<A: CChar = u8> {
 /// }
 /// ```
 #[derive(Hash)]
-pub struct CWideStr<A: CChar = u8> {
+pub struct CStr<A: CChar = u8> {
     // FIXME: this should not be represented with a DST slice but rather with
     //        just a raw `c_ushort` along with some form of marker to make
-    //        this an unsized type. Essentially `sizeof(&CWideStr)` should be the
-    //        same as `sizeof(&c_ushort)` but `CWideStr` should be an unsized type.
+    //        this an unsized type. Essentially `sizeof(&CStr)` should be the
+    //        same as `sizeof(&c_ushort)` but `CStr` should be an unsized type.
     inner: [A]
 }
 
-/// An error returned from `CWideString::new` to indicate that a nul byte was found
+/// An error returned from `CString::new` to indicate that a nul byte was found
 /// in the vector provided.
 #[derive(Clone, PartialEq, Debug)]
 pub struct WideNulError<A: CChar>(usize, Vec<A>);
 
-/// An error returned from `CWideString::into_string` to indicate that a UTF-8 error
+/// An error returned from `CString::into_string` to indicate that a UTF-8 error
 /// was encountered during the conversion.
 #[derive(Clone, PartialEq, Debug)]
 pub struct IntoStringError<A: CChar> {
-    inner: CWideString<A>,
+    inner: CString<A>,
     error: Utf8Error,
 }
 
@@ -190,7 +190,7 @@ pub trait CChar: Sized + PartialEq + PartialOrd + Ord + Default + Clone + Debug 
     fn write(f: &mut fmt::Formatter, text: &[Self]) -> fmt::Result;
 }
 
-impl <A: CChar> CWideString<A> {
+impl <A: CChar> CString<A> {
     /// Creates a new C-compatible string from a container of bytes.
     ///
     /// This method will consume the provided data and use the underlying bytes
@@ -201,13 +201,13 @@ impl <A: CChar> CWideString<A> {
     /// ```no_run
     /// extern crate cwstring;
     ///
-    /// use cwstring::ffi::CWideString;
+    /// use cwstring::ffi::CString;
     /// use std::os::raw::c_ushort;
     ///
     /// extern { fn puts(s: *const c_ushort); }
     ///
     /// fn main() {
-    ///     let to_print = CWideString::new("Hello!".encode_utf16().collect::<Vec<u16>>()).unwrap();
+    ///     let to_print = CString::new("Hello!".encode_utf16().collect::<Vec<u16>>()).unwrap();
     ///     unsafe {
     ///         puts(to_print.as_ptr());
     ///     }
@@ -226,7 +226,7 @@ impl <A: CChar> CWideString<A> {
     fn _new(bytes: Vec<A>) -> Result<Self, WideNulError<A>> {
         match A::memchr(A::default(), &bytes) {
             Some(i) => Err(WideNulError(i, bytes)),
-            None => Ok(unsafe { CWideString::from_vec_unchecked(bytes) }),
+            None => Ok(unsafe { CString::from_vec_unchecked(bytes) }),
         }
     }
 
@@ -238,18 +238,18 @@ impl <A: CChar> CWideString<A> {
     /// byte vector, not anything that can be converted to one with Into.
     pub unsafe fn from_vec_unchecked(mut v: Vec<A>) -> Self {
         v.push(A::default());
-        CWideString { inner: v.into_boxed_slice() }
+        CString { inner: v.into_boxed_slice() }
     }
 
-    /// Retakes ownership of a `CWideString` that was transferred to C.
+    /// Retakes ownership of a `CString` that was transferred to C.
     ///
     /// This should only ever be called with a pointer that was earlier
-    /// obtained by calling `into_raw` on a `CWideString`. Additionally, the length
+    /// obtained by calling `into_raw` on a `CString`. Additionally, the length
     /// of the string will be recalculated from the pointer.
     pub unsafe fn from_raw(ptr: *mut A::CType) -> Self {
         let len = A::strlen(ptr) + 1; // Including the NUL byte
         let slice = slice::from_raw_parts(ptr, len as usize);
-        CWideString { inner: mem::transmute(slice) }
+        CString { inner: mem::transmute(slice) }
     }
 
     /// Creates a new C-compatible string from a container of bytes.
@@ -262,13 +262,13 @@ impl <A: CChar> CWideString<A> {
     /// ```no_run
     /// extern crate cwstring;
     ///
-    /// use cwstring::ffi::CWideString;
+    /// use cwstring::ffi::CString;
     /// use std::os::raw::c_ushort;
     ///
     /// extern { fn puts(s: *const c_ushort); }
     ///
     /// fn main() {
-    ///     let to_print = CWideString::<u16>::from_str("Hello!").unwrap();
+    ///     let to_print = CString::<u16>::from_str("Hello!").unwrap();
     ///     unsafe {
     ///         puts(to_print.as_ptr());
     ///     }
@@ -313,7 +313,7 @@ impl <A: CChar> CWideString<A> {
         self.inner.into_vec()
     }
 
-    /// Returns the contents of this `CWideString` as a slice of bytes.
+    /// Returns the contents of this `CString` as a slice of bytes.
     ///
     /// The returned slice does **not** contain the trailing nul separator and
     /// it is guaranteed to not have any interior nul bytes.
@@ -328,41 +328,41 @@ impl <A: CChar> CWideString<A> {
     }
 }
 
-impl <A: CChar> ops::Deref for CWideString<A> {
-    type Target = CWideStr<A>;
+impl <A: CChar> ops::Deref for CString<A> {
+    type Target = CStr<A>;
 
-    fn deref(&self) -> &CWideStr<A> {
+    fn deref(&self) -> &CStr<A> {
         unsafe { mem::transmute(self.as_bytes_with_nul()) }
     }
 }
 
-impl <A: CChar> fmt::Debug for CWideString<A> {
+impl <A: CChar> fmt::Debug for CString<A> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         fmt::Debug::fmt(&**self, f)
     }
 }
 /*
-impl <A: CChar> From<CWideString<A>> for Vec<A> {
-    fn from(s: CWideString<A>) -> Vec<A> {
+impl <A: CChar> From<CString<A>> for Vec<A> {
+    fn from(s: CString<A>) -> Vec<A> {
         s.into_bytes()
     }
 }
 */
-impl From<CWideString<u8>> for Vec<u8> {
+impl From<CString<u8>> for Vec<u8> {
     // todo: Replace this method by generic
-    fn from(s: CWideString<u8>) -> Vec<u8> {
+    fn from(s: CString<u8>) -> Vec<u8> {
         s.into_bytes()
     }
 }
 
-impl From<CWideString<u16>> for Vec<u16> {
+impl From<CString<u16>> for Vec<u16> {
     // todo: Replace this method by generic
-    fn from(s: CWideString<u16>) -> Vec<u16> {
+    fn from(s: CString<u16>) -> Vec<u16> {
         s.into_bytes()
     }
 }
 
-impl <A: CChar> fmt::Debug for CWideStr<A> {
+impl <A: CChar> fmt::Debug for CStr<A> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "\"")?;
         A::write(f, self.to_bytes())?;
@@ -370,13 +370,13 @@ impl <A: CChar> fmt::Debug for CWideStr<A> {
     }
 }
 
-impl <A: CChar> Borrow<CWideStr<A>> for CWideString<A> {
-    fn borrow(&self) -> &CWideStr<A> { self }
+impl <A: CChar> Borrow<CStr<A>> for CString<A> {
+    fn borrow(&self) -> &CStr<A> { self }
 }
 
 impl <A: CChar> WideNulError<A> {
     /// Returns the position of the nul byte in the slice that was provided to
-    /// `CWideString::new`.
+    /// `CString::new`.
     pub fn nul_position(&self) -> usize { self.0 }
 
     /// Consumes this error, returning the underlying vector of bytes which
@@ -401,10 +401,10 @@ impl <A: CChar> From<WideNulError<A>> for io::Error {
     }
 }
 
-impl <A: CChar> CWideStr<A> {
+impl <A: CChar> CStr<A> {
     /// Casts a raw C string to a safe C string wrapper.
     ///
-    /// This function will cast the provided `ptr` to the `CWideStr` wrapper which
+    /// This function will cast the provided `ptr` to the `CStr` wrapper which
     /// allows inspection and interoperation of non-owned C strings. This method
     /// is unsafe for a number of reasons:
     ///
@@ -424,7 +424,7 @@ impl <A: CChar> CWideStr<A> {
     /// extern crate cwstring;
     ///
     /// # fn main() {
-    /// use cwstring::ffi::CWideStr;
+    /// use cwstring::ffi::CStr;
     /// use std::os::raw::c_ushort;
     ///
     /// extern {
@@ -432,19 +432,19 @@ impl <A: CChar> CWideStr<A> {
     /// }
     ///
     /// unsafe {
-    ///     let slice = CWideStr::<u16>::from_ptr(my_string());
+    ///     let slice = CStr::<u16>::from_ptr(my_string());
     ///     println!("string returned: {}", slice.to_string().unwrap());
     /// }
     /// # }
     /// ```
-    pub unsafe fn from_ptr<'a>(ptr: *const A::CType) -> &'a CWideStr<A> {
+    pub unsafe fn from_ptr<'a>(ptr: *const A::CType) -> &'a CStr<A> {
         let len = A::strlen(ptr);
         mem::transmute(slice::from_raw_parts(ptr, len + 1))
     }
 
     /// Creates a C string wrapper from a byte slice.
     ///
-    /// This function will cast the provided `bytes` to a `CWideStr` wrapper after
+    /// This function will cast the provided `bytes` to a `CStr` wrapper after
     /// ensuring that it is null terminated and does not contain any interior
     /// nul bytes.
     ///
@@ -454,15 +454,15 @@ impl <A: CChar> CWideStr<A> {
     /// # #![feature(cstr_from_bytes)]
     /// extern crate cwstring;
     ///
-    /// use cwstring::ffi::CWideStr;
+    /// use cwstring::ffi::CStr;
     ///
     /// # fn main() {
     /// let wide = "hello\0".encode_utf16().collect::<Vec<u16>>();
-    /// let cstr = CWideStr::from_bytes_with_nul(&wide);
+    /// let cstr = CStr::from_bytes_with_nul(&wide);
     /// assert!(cstr.is_some());
     /// # }
     /// ```
-    pub fn from_bytes_with_nul(bytes: &[A]) -> Option<&CWideStr<A>> {
+    pub fn from_bytes_with_nul(bytes: &[A]) -> Option<&CStr<A>> {
         if bytes.is_empty() || A::memchr(A::default(), bytes) != Some(bytes.len() - 1) {
             None
         } else {
@@ -472,7 +472,7 @@ impl <A: CChar> CWideStr<A> {
 
     /// Unsafely creates a C string wrapper from a byte slice.
     ///
-    /// This function will cast the provided `bytes` to a `CWideStr` wrapper without
+    /// This function will cast the provided `bytes` to a `CStr` wrapper without
     /// performing any sanity checks. The provided slice must be null terminated
     /// and not contain any interior nul bytes.
     ///
@@ -482,17 +482,17 @@ impl <A: CChar> CWideStr<A> {
     /// # #![feature(cstr_from_bytes)]
     /// extern crate cwstring;
     ///
-    /// use cwstring::ffi::{CWideStr, CWideString};
+    /// use cwstring::ffi::{CStr, CString};
     ///
     /// # fn main() {
     /// unsafe {
-    ///     let cstring = CWideString::<u16>::from_str("hello").unwrap();
-    ///     let cstr = CWideStr::from_bytes_with_nul_unchecked(cstring.to_bytes_with_nul());
+    ///     let cstring = CString::<u16>::from_str("hello").unwrap();
+    ///     let cstr = CStr::from_bytes_with_nul_unchecked(cstring.to_bytes_with_nul());
     ///     assert_eq!(cstr, &*cstring);
     /// }
     /// # }
     /// ```
-    pub unsafe fn from_bytes_with_nul_unchecked(bytes: &[A]) -> &CWideStr<A> {
+    pub unsafe fn from_bytes_with_nul_unchecked(bytes: &[A]) -> &CStr<A> {
         mem::transmute(bytes)
     }
 
@@ -534,7 +534,7 @@ impl <A: CChar> CWideStr<A> {
         unsafe { mem::transmute(&self.inner) }
     }
 
-    /// Yields a `&str` slice if the `CWideStr` contains valid UTF-8.
+    /// Yields a `&str` slice if the `CStr` contains valid UTF-8.
     ///
     /// This function will calculate the length of this string and check for
     /// UTF-8 validity, and then return the `&str` if it's valid.
@@ -544,14 +544,14 @@ impl <A: CChar> CWideStr<A> {
     /// > future to perform the length calculation in addition to the UTF-8
     /// > check whenever this method is called.
     pub fn to_string(&self) -> Result<String, A::FromError> {
-        // NB: When CWideStr is changed to perform the length check in .to_bytes()
+        // NB: When CStr is changed to perform the length check in .to_bytes()
         // instead of in from_ptr(), it may be worth considering if this should
         // be rewritten to do the UTF-8 check inline with the length calculation
         // instead of doing it afterwards.
         A::vec_to_string(self.to_bytes())
     }
 
-    /// Converts a `CWideStr` into a `Cow<str>`.
+    /// Converts a `CStr` into a `Cow<str>`.
     ///
     /// This function will calculate the length of this string (which normally
     /// requires a linear amount of work to be done) and then return the
@@ -567,61 +567,61 @@ impl <A: CChar> CWideStr<A> {
     }
 }
 
-impl CWideStr<u8> {
+impl CStr<u8> {
     pub fn to_str(&self) -> Result<&str, str::Utf8Error> {
         str::from_utf8(self.to_bytes())
     }
 }
 
-impl <A: CChar> PartialEq for CWideStr<A> {
-    fn eq(&self, other: &CWideStr<A>) -> bool {
+impl <A: CChar> PartialEq for CStr<A> {
+    fn eq(&self, other: &CStr<A>) -> bool {
         self.to_bytes().eq(other.to_bytes())
     }
 }
 
-impl <A: CChar> Eq for CWideStr<A> {}
-impl <A: CChar> PartialOrd for CWideStr<A> {
-    fn partial_cmp(&self, other: &CWideStr<A>) -> Option<Ordering> {
+impl <A: CChar> Eq for CStr<A> {}
+impl <A: CChar> PartialOrd for CStr<A> {
+    fn partial_cmp(&self, other: &CStr<A>) -> Option<Ordering> {
         self.to_bytes().partial_cmp(&other.to_bytes())
     }
 }
-impl <A: CChar> Ord for CWideStr<A> {
-    fn cmp(&self, other: &CWideStr<A>) -> Ordering {
+impl <A: CChar> Ord for CStr<A> {
+    fn cmp(&self, other: &CStr<A>) -> Ordering {
         self.to_bytes().cmp(&other.to_bytes())
     }
 }
 
-impl <A: CChar> ToOwned for CWideStr<A> {
-    type Owned = CWideString<A>;
+impl <A: CChar> ToOwned for CStr<A> {
+    type Owned = CString<A>;
 
-    fn to_owned(&self) -> CWideString<A> {
-        unsafe { CWideString::from_vec_unchecked(self.to_bytes().to_vec()) }
+    fn to_owned(&self) -> CString<A> {
+        unsafe { CString::from_vec_unchecked(self.to_bytes().to_vec()) }
     }
 }
 
-impl <'a, A: CChar> From<&'a CWideStr<A>> for CWideString<A> {
-    fn from(s: &'a CWideStr<A>) -> CWideString<A> {
+impl <'a, A: CChar> From<&'a CStr<A>> for CString<A> {
+    fn from(s: &'a CStr<A>) -> CString<A> {
         s.to_owned()
     }
 }
 
-impl <A: CChar> ops::Index<ops::RangeFull> for CWideString<A> {
-    type Output = CWideStr<A>;
+impl <A: CChar> ops::Index<ops::RangeFull> for CString<A> {
+    type Output = CStr<A>;
 
     #[inline]
-    fn index(&self, _index: ops::RangeFull) -> &CWideStr<A> {
+    fn index(&self, _index: ops::RangeFull) -> &CStr<A> {
         self
     }
 }
 
-impl <A: CChar> AsRef<CWideStr<A>> for CWideStr<A> {
-    fn as_ref(&self) -> &CWideStr<A> {
+impl <A: CChar> AsRef<CStr<A>> for CStr<A> {
+    fn as_ref(&self) -> &CStr<A> {
         self
     }
 }
 
-impl <A: CChar> AsRef<CWideStr<A>> for CWideString<A> {
-    fn as_ref(&self) -> &CWideStr<A> {
+impl <A: CChar> AsRef<CStr<A>> for CString<A> {
+    fn as_ref(&self) -> &CStr<A> {
         self
     }
 }
@@ -726,45 +726,45 @@ mod tests_u8 {
         let data = b"123\0";
         let ptr = data.as_ptr() as *const c_char;
         unsafe {
-            assert_eq!(CWideStr::<u8>::from_ptr(ptr).to_bytes(), b"123");
-            assert_eq!(CWideStr::<u8>::from_ptr(ptr).to_bytes_with_nul(), b"123\0");
+            assert_eq!(CStr::<u8>::from_ptr(ptr).to_bytes(), b"123");
+            assert_eq!(CStr::<u8>::from_ptr(ptr).to_bytes_with_nul(), b"123\0");
         }
     }
 
     #[test]
     fn simple() {
-        let s = CWideString::new("1234").unwrap();
+        let s = CString::new("1234").unwrap();
         assert_eq!(s.as_bytes(), b"1234");
         assert_eq!(s.as_bytes_with_nul(), b"1234\0");
     }
 
     #[test]
     fn build_with_zero1() {
-        assert!(CWideString::new(&b"\0"[..]).is_err());
+        assert!(CString::new(&b"\0"[..]).is_err());
     }
     #[test]
     fn build_with_zero2() {
-        assert!(CWideString::new(vec![0 as u8]).is_err());
+        assert!(CString::new(vec![0 as u8]).is_err());
     }
 
     #[test]
     fn build_with_zero3() {
         unsafe {
-            let s = CWideString::from_vec_unchecked(vec![0]);
+            let s = CString::from_vec_unchecked(vec![0]);
             assert_eq!(s.as_bytes(), b"\0");
         }
     }
 
     #[test]
     fn formatted() {
-        let s = CWideString::new(&b"abc\x01\x02\n\xE2\x80\xA6\xFF"[..]).unwrap();
+        let s = CString::new(&b"abc\x01\x02\n\xE2\x80\xA6\xFF"[..]).unwrap();
         assert_eq!(format!("{:?}", s), r#""abc\x01\x02\n\xe2\x80\xa6\xff""#);
     }
 
     #[test]
     fn borrowed() {
         unsafe {
-            let s = CWideStr::<u8>::from_ptr(b"12\0".as_ptr() as *const _);
+            let s = CStr::<u8>::from_ptr(b"12\0".as_ptr() as *const _);
             assert_eq!(s.to_bytes(), b"12");
             assert_eq!(s.to_bytes_with_nul(), b"12\0");
         }
@@ -775,14 +775,14 @@ mod tests_u8 {
         let data = b"123\xE2\x80\xA6\0";
         let ptr = data.as_ptr() as *const c_char;
         unsafe {
-            assert_eq!(CWideStr::<u8>::from_ptr(ptr).to_str(), Ok("123…"));
-            assert_eq!(CWideStr::<u8>::from_ptr(ptr).to_string_lossy(), Borrowed("123…"));
+            assert_eq!(CStr::<u8>::from_ptr(ptr).to_str(), Ok("123…"));
+            assert_eq!(CStr::<u8>::from_ptr(ptr).to_string_lossy(), Borrowed("123…"));
         }
         let data = b"123\xE2\0";
         let ptr = data.as_ptr() as *const c_char;
         unsafe {
-            assert!(CWideStr::<u8>::from_ptr(ptr).to_str().is_err());
-            assert_eq!(CWideStr::<u8>::from_ptr(ptr).to_string_lossy(), Owned::<str>(format!("123\u{FFFD}")));
+            assert!(CStr::<u8>::from_ptr(ptr).to_str().is_err());
+            assert_eq!(CStr::<u8>::from_ptr(ptr).to_string_lossy(), Owned::<str>(format!("123\u{FFFD}")));
         }
     }
 
@@ -791,7 +791,7 @@ mod tests_u8 {
         let data = b"123\0";
         let ptr = data.as_ptr() as *const c_char;
 
-        let owned = unsafe { CWideStr::<u8>::from_ptr(ptr).to_owned() };
+        let owned = unsafe { CStr::<u8>::from_ptr(ptr).to_owned() };
         assert_eq!(owned.as_bytes_with_nul(), data);
     }
 
@@ -799,13 +799,13 @@ mod tests_u8 {
     fn equal_hash() {
         let data = b"123\xE2\xFA\xA6\0";
         let ptr = data.as_ptr() as *const c_char;
-        let cstr: &'static CWideStr<u8> = unsafe { CWideStr::<u8>::from_ptr(ptr) };
+        let cstr: &'static CStr<u8> = unsafe { CStr::<u8>::from_ptr(ptr) };
 
         let mut s = SipHasher::new_with_keys(0, 0);
         cstr.hash(&mut s);
         let cstr_hash = s.finish();
         let mut s = SipHasher::new_with_keys(0, 0);
-        CWideString::new(&data[..data.len() - 1]).unwrap().hash(&mut s);
+        CString::new(&data[..data.len() - 1]).unwrap().hash(&mut s);
         let cstring_hash = s.finish();
 
         assert_eq!(cstr_hash, cstring_hash);
@@ -814,12 +814,12 @@ mod tests_u8 {
     #[test]
     fn from_bytes_with_nul() {
         let data = b"123\0";
-        let cstr = CWideStr::from_bytes_with_nul(data);
-        assert_eq!(cstr.map(CWideStr::to_bytes), Some(&b"123"[..]));
-        assert_eq!(cstr.map(CWideStr::to_bytes_with_nul), Some(&b"123\0"[..]));
+        let cstr = CStr::from_bytes_with_nul(data);
+        assert_eq!(cstr.map(CStr::to_bytes), Some(&b"123"[..]));
+        assert_eq!(cstr.map(CStr::to_bytes_with_nul), Some(&b"123\0"[..]));
 
         unsafe {
-            let cstr_unchecked = CWideStr::from_bytes_with_nul_unchecked(data);
+            let cstr_unchecked = CStr::from_bytes_with_nul_unchecked(data);
             assert_eq!(cstr, Some(cstr_unchecked));
         }
     }
@@ -827,14 +827,14 @@ mod tests_u8 {
     #[test]
     fn from_bytes_with_nul_unterminated() {
         let data = b"123";
-        let cstr = CWideStr::from_bytes_with_nul(data);
+        let cstr = CStr::from_bytes_with_nul(data);
         assert!(cstr.is_none());
     }
 
     #[test]
     fn from_bytes_with_nul_interior() {
         let data = b"1\023\0";
-        let cstr = CWideStr::from_bytes_with_nul(data);
+        let cstr = CStr::from_bytes_with_nul(data);
         assert!(cstr.is_none());
     }
 }
@@ -856,45 +856,45 @@ mod tests_u16 {
         let data = utf16("123\0");
         let ptr = data.as_ptr();
         unsafe {
-            assert_eq!(CWideStr::<u16>::from_ptr(ptr).to_bytes(), &utf16("123")[..]);
-            assert_eq!(CWideStr::<u16>::from_ptr(ptr).to_bytes_with_nul(), &utf16("123\0")[..]);
+            assert_eq!(CStr::<u16>::from_ptr(ptr).to_bytes(), &utf16("123")[..]);
+            assert_eq!(CStr::<u16>::from_ptr(ptr).to_bytes_with_nul(), &utf16("123\0")[..]);
         }
     }
 
     #[test]
     fn simple() {
-        let s = CWideString::<u16>::from_str("1234").unwrap();
+        let s = CString::<u16>::from_str("1234").unwrap();
         assert_eq!(s.as_bytes(), &utf16("1234")[..]);
         assert_eq!(s.as_bytes_with_nul(), &utf16("1234\0")[..]);
     }
 
     #[test]
     fn build_with_zero1() {
-        assert!(CWideString::<u16>::from_str("\0").is_err());
+        assert!(CString::<u16>::from_str("\0").is_err());
     }
     #[test]
     fn build_with_zero2() {
-        assert!(CWideString::new(vec![0 as u16]).is_err());
+        assert!(CString::new(vec![0 as u16]).is_err());
     }
 
     #[test]
     fn build_with_zero3() {
         unsafe {
-            let s = CWideString::from_vec_unchecked(vec![0]);
+            let s = CString::from_vec_unchecked(vec![0]);
             assert_eq!(s.as_bytes(), &[0u16]);
         }
     }
 
     #[test]
     fn formatted() {
-        let s = CWideString::new(&['a' as u16, 'b' as u16, 'c' as u16, 0x01u16, 0x02u16, '\n' as u16, 0xD83Du16, 0xDE03u16][..]).unwrap();
+        let s = CString::new(&['a' as u16, 'b' as u16, 'c' as u16, 0x01u16, 0x02u16, '\n' as u16, 0xD83Du16, 0xDE03u16][..]).unwrap();
         assert_eq!(format!("{:?}", s), r#""abc\u{1}\u{2}\n\u{d83d}\u{de03}""#);
     }
 
     #[test]
     fn borrowed() {
         unsafe {
-            let s = CWideStr::<u16>::from_ptr(utf16("12\0").as_ptr() as *const _);
+            let s = CStr::<u16>::from_ptr(utf16("12\0").as_ptr() as *const _);
             assert_eq!(s.to_bytes(), &utf16("12")[..]);
             assert_eq!(s.to_bytes_with_nul(), &utf16("12\0")[..]);
         }
@@ -905,15 +905,15 @@ mod tests_u16 {
         let data: Vec<u16> = "123".encode_utf16().chain(Some(0xD83Du16)).chain(Some(0xDE03u16)).chain(Some(0)).collect();
         let ptr = data.as_ptr();
         unsafe {
-            assert!(CWideStr::<u16>::from_ptr(ptr).to_string().is_ok());
-            assert_eq!(CWideStr::<u16>::from_ptr(ptr).to_string().unwrap(), "123😃");
-            assert_eq!(CWideStr::<u16>::from_ptr(ptr).to_string_lossy(), Borrowed("123😃"));
+            assert!(CStr::<u16>::from_ptr(ptr).to_string().is_ok());
+            assert_eq!(CStr::<u16>::from_ptr(ptr).to_string().unwrap(), "123😃");
+            assert_eq!(CStr::<u16>::from_ptr(ptr).to_string_lossy(), Borrowed("123😃"));
         }
         let data: Vec<u16> = "123".encode_utf16().chain(Some(0xD83Du16)).chain(Some(0)).collect();
         let ptr = data.as_ptr();
         unsafe {
-            assert!(CWideStr::<u16>::from_ptr(ptr).to_string().is_err());
-            assert_eq!(CWideStr::<u16>::from_ptr(ptr).to_string_lossy(), Owned::<str>(format!("123\u{FFFD}")));
+            assert!(CStr::<u16>::from_ptr(ptr).to_string().is_err());
+            assert_eq!(CStr::<u16>::from_ptr(ptr).to_string_lossy(), Owned::<str>(format!("123\u{FFFD}")));
         }
     }
 
@@ -922,7 +922,7 @@ mod tests_u16 {
         let data = utf16("123\0");
         let ptr = data.as_ptr();
 
-        let owned = unsafe { CWideStr::<u16>::from_ptr(ptr).to_owned() };
+        let owned = unsafe { CStr::<u16>::from_ptr(ptr).to_owned() };
         assert_eq!(owned.as_bytes_with_nul(), &data[..]);
     }
 
@@ -930,13 +930,13 @@ mod tests_u16 {
     fn equal_hash() {
         let data: Vec<u16> = "123".encode_utf16().chain(Some(0xD83Du16)).chain(Some(0xDE03u16)).chain(Some(0)).collect();
         let ptr = data.as_ptr();
-        let cstr: &'static CWideStr<u16> = unsafe { CWideStr::<u16>::from_ptr(ptr) };
+        let cstr: &'static CStr<u16> = unsafe { CStr::<u16>::from_ptr(ptr) };
 
         let mut s = SipHasher::new_with_keys(0, 0);
         cstr.hash(&mut s);
         let cstr_hash = s.finish();
         let mut s = SipHasher::new_with_keys(0, 0);
-        CWideString::new(&data[..data.len() - 1]).unwrap().hash(&mut s);
+        CString::new(&data[..data.len() - 1]).unwrap().hash(&mut s);
         let cstring_hash = s.finish();
 
         assert_eq!(cstr_hash, cstring_hash);
@@ -945,12 +945,12 @@ mod tests_u16 {
     #[test]
     fn from_bytes_with_nul() {
         let data = utf16("123\0");
-        let cstr = CWideStr::from_bytes_with_nul(&data);
-        assert_eq!(cstr.map(CWideStr::to_bytes), Some(&utf16("123")[..]));
-        assert_eq!(cstr.map(CWideStr::to_bytes_with_nul), Some(&utf16("123\0")[..]));
+        let cstr = CStr::from_bytes_with_nul(&data);
+        assert_eq!(cstr.map(CStr::to_bytes), Some(&utf16("123")[..]));
+        assert_eq!(cstr.map(CStr::to_bytes_with_nul), Some(&utf16("123\0")[..]));
 
         unsafe {
-            let cstr_unchecked = CWideStr::from_bytes_with_nul_unchecked(&data);
+            let cstr_unchecked = CStr::from_bytes_with_nul_unchecked(&data);
             assert_eq!(cstr, Some(cstr_unchecked));
         }
     }
@@ -958,14 +958,14 @@ mod tests_u16 {
     #[test]
     fn from_bytes_with_nul_unterminated() {
         let data = utf16("123");
-        let cstr = CWideStr::from_bytes_with_nul(&data);
+        let cstr = CStr::from_bytes_with_nul(&data);
         assert!(cstr.is_none());
     }
 
     #[test]
     fn from_bytes_with_nul_interior() {
         let data = utf16("1\023\0");
-        let cstr = CWideStr::from_bytes_with_nul(&data);
+        let cstr = CStr::from_bytes_with_nul(&data);
         assert!(cstr.is_none());
     }
 }
